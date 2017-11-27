@@ -1,0 +1,168 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+setwd('C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+knitr::opts_knit$set(root.dir = 'C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+getwd()
+```
+
+## import train set
+```{r}
+df <- read.csv("Titanic/train.csv",na.strings = "")
+```
+
+## remove unintelligable features
+```{r}
+df <- df[,-c(1,4,9,11)]
+```
+
+## load caret
+```{r}
+library(caret)
+```
+
+## change Pclass from numeric to categorical
+```{r}
+df.numeric<-df
+df.numeric$Pclass<- as.factor(df.numeric$Pclass)
+```
+
+## read the test data
+```{r}
+new_df <-read.csv('Titanic/test.csv',na.strings = "")
+```
+
+#save the passenger id column
+```{r}
+ids<- new_df$PassengerId
+```
+
+## same as df.numeric, change pclass to categorical. then remove the 1,3,8 columns
+```{r}
+new_df$Pclass<- as.factor(new_df$Pclass)
+new_df<- new_df[,-c(1,3,8,10)]
+new_df
+```
+
+## split categorical features to multiple columns
+```{r}
+dmy <- dummyVars(" ~ .", data = new_df,fullRank=F)
+new_df <- data.frame(predict(dmy, newdata = new_df))
+head(new_df)
+```
+```{r}
+dmy <- dummyVars(" ~ .", data = df.numeric,fullRank=F)
+df.numeric <- data.frame(predict(dmy, newdata = df.numeric))
+head(df.numeric)
+```
+
+```{r}
+df.numeric$Survived<- as.factor(df.numeric$Survived)
+levels(df.numeric$Survived)<-c("x0","x1")
+head(df.numeric)
+```
+
+```{r}
+#new_df<-rbind.fill(as.data.frame(df.numeric),as.data.frame(new_df))
+new_df
+```
+
+```{r}
+df_numeric_without_survived<-df.numeric[,-c(1)]
+head(df_numeric_without_survived)
+
+```
+
+
+
+```{r}
+empty_records <- df.numeric[rowSums(is.na(df.numeric)) > 0,]
+if (nrow(empty_records)>0)
+  df.numeric<- na.omit(df.numeric)
+df.numeric
+set.seed(1)
+metric <- "Accuracy"
+models <- caretList(
+  Survived ~ .,
+  data = df.numeric,
+    trControl = 
+  trainControl(
+    method = "cv",
+    number = 5,
+    savePredictions = 'final',
+    classProbs=TRUE
+  ),
+  metric = metric,
+  tuneList = list(
+    C50 = caretModelSpec(
+      method = "C5.0",
+      tuneGrid = data.frame(
+        .trials = 2,
+        .model = 'tree',
+        .winnow = TRUE
+      )
+    ),
+    xgbTree = caretModelSpec(
+      method = "xgbTree",
+      tuneGrid = data.frame(
+        .nrounds=20,
+        .max_depth=7,
+        .eta=0.3,
+        .gamma=0.1,
+        .colsample_bytree=0.7,
+        .min_child_weight=0.01,
+        .subsample=0.6
+      )
+    )
+  )
+)
+```
+
+
+```{r}
+xyplot(resamples(models))
+```
+
+
+
+```{r}
+results <- resamples(models)
+summary(results)
+```
+
+```{r}
+new_pred_tbl<- predict(models,new_df,na.action = na.pass)
+#new_df
+new_pred <- as.data.frame(new_pred_tbl)
+#new_pred
+```
+
+```{r}
+res <- cbind(PassengerId=ids,Survived=as.double(new_pred$C5.0))
+res_df <- as.data.frame(res)
+
+res_df$Survived <- ifelse(res_df$Survive > 0.6, 1, 0)
+
+write.csv(res_df,file="Titanic/try1.csv",row.names = F)
+```
+
+
+You can also embed plots, for example:
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

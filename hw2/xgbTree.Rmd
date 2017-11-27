@@ -1,0 +1,92 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+xgbTree implementation:
+```{r}
+setwd('C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+knitr::opts_knit$set(root.dir = 'C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+getwd()
+```
+```{r}
+df <- read.csv("Titanic/train.csv",na.strings = "")
+```
+```{r}
+df <- df[,-c(1,4,9)]
+```
+```{r}
+library(caret)
+```
+
+```{r}
+df$Survived<- as.factor(df$Survived)
+df$Pclass<- as.factor(df$Pclass)
+```
+
+
+
+```{r}
+set.seed(123)
+control <- trainControl(method="cv", number=3)
+grid <- expand.grid(.nrounds=10,.max_depth=c(6,7,8),.eta=c(0.1,0.25,0.5,0.85),.gamma=0.1,.colsample_bytree=c(0.8,0.9,0.7),.min_child_weight=0.01,.subsample=c(0.75, 0.85, 0.95, 0.7))
+fit.xgb <- train(Survived~., data=df, method="xgbTree",  trControl=control, verbose=FALSE,tuneGrid =grid,na.action = na.pass)
+```
+```{r}
+plot(fit.xgb)
+```
+```{r}
+fit.xgb$results[order( fit.xgb$results[,"Accuracy"] ),]
+
+```
+
+```{r}
+fit.xgb
+```
+
+```{r}
+new_df <-read.csv('Titanic/test.csv',na.strings = "")
+```
+
+```{r}
+ids<- new_df$PassengerId
+```
+
+```{r}
+new_df$Pclass<- as.factor(new_df$Pclass)
+new_df<- new_df[,-c(1,3,8)]
+```
+```{r}
+fit.xgb$xlevels[["Cabin"]] <- union(fit.xgb$xlevels[["Cabin"]], levels(new_df$Cabin))
+```
+
+```{r}
+new_pred<- predict(fit.xgb,new_df,na.action = na.pass)
+```
+
+```{r}
+res <- cbind(PassengerId=ids,Survived=as.character(new_pred))
+write.csv(res,file="Titanic/try2.csv",row.names = F)
+```
+
+
+You can also embed plots, for example:
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

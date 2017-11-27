@@ -1,0 +1,90 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+C5.0 implementation:
+
+```{r}
+setwd('C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+knitr::opts_knit$set(root.dir = 'C:\\Users\\dell\\Desktop\\Sadna_Lamadan\\HW2\\gals_files')
+getwd()
+```
+```{r}
+df <- read.csv("Titanic/train.csv",na.strings = "")
+```
+```{r}
+df <- df[,-c(1,4,9)]
+```
+```{r}
+library(caret)
+```
+
+```{r}
+df$Survived<- as.factor(df$Survived)
+df$Pclass<- as.factor(df$Pclass)
+```
+
+```{r}
+set.seed(123)
+control <- trainControl(method="cv", number=10)
+fit.c50 <- train(Survived~., data=df, method="C5.0", metric="Accuracy", trControl=control, na.action = na.pass)
+```
+
+```{r}
+plot(fit.c50)
+```
+
+```{r}
+fit.c50
+```
+
+```{r}
+new_df <-read.csv('Titanic/test.csv',na.strings = "")
+```
+
+```{r}
+ids<- new_df$PassengerId
+```
+
+```{r}
+new_df$Pclass<- as.factor(new_df$Pclass)
+new_df<- new_df[,-c(1,3,8)]
+```
+
+```{r}
+fit.c50$xlevels[["Cabin"]] <- union(fit.c50$xlevels[["Cabin"]], levels(new_df$Cabin))
+```
+
+```{r}
+new_pred<- predict(fit.c50,new_df,na.action = na.pass)
+```
+
+```{r}
+res <- cbind(PassengerId=ids,Survived=as.character(new_pred))
+write.csv(res,file="Titanic/try3.csv",row.names = F)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
